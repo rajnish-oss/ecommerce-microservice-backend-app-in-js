@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package productcatalog;
+
+// ===== Service - All RPCs =====
+service ProductCatalogService {
+  // Admin Commands
+  rpc AddProduct(AddProductRequest) returns (ProductResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (ProductResponse);
+  rpc ArchiveProduct(ArchiveProductRequest) returns (ProductResponse);
+  
+  // Miscel Commands
+  rpc SyncToAlgolia(SyncToAlgoliaRequest) returns (AlgoliaResponse);
+  rpc GetCategoryTree(GetCategoryTreeRequest) returns (CategoryTreeResponse);
+  rpc GetFilterAttributes(GetFilterAttributesRequest) returns (FilterAttributesResponse);
+  
+  // Public Commands
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
+  rpc GetProductsByCategory(GetProductsByCategoryRequest) returns (ProductsByCategoryResponse);
+  rpc GetRelatedProducts(GetRelatedProductsRequest) returns (RelatedProductsResponse);
+  rpc GetFeaturedProducts(EmptyRequest) returns (FeaturedProductsResponse);
+  rpc GetProductDetails(GetProductDetailsRequest) returns (ProductDetailsResponse);
+}
+
+// ===== Messages =====
+
+message Product {
+  string productId = 1;
+  string name = 2;
+  int32 stock = 3;
+  double price = 4;
+  string category = 5;
+  string description = 6;
+  bool isActive = 7;
+  string createdAt = 8;
+  string updatedAt = 9;
+}
+
+message Category {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string parent = 4;
+}
+
+message FilterAttribute {
+  string name = 1;
+  repeated string values = 2;
+}
+
+// ===== Admin Requests =====
+message AddProductRequest {
+  Product product = 1;
+}
+
+message UpdateProductRequest {
+  Product product = 1;
+}
+
+message ArchiveProductRequest {
+  string productId = 1;
+}
+
+// ===== Miscel Requests =====
+message SyncToAlgoliaRequest {
+  string productId = 1;
+}
+
+message GetCategoryTreeRequest {
+  string productId = 1;
+}
+
+message GetFilterAttributesRequest {
+  string categoryId = 1;
+}
+
+// ===== Public Requests =====
+message SearchProductsRequest {
+  string query = 1;
+}
+
+message GetProductsByCategoryRequest {
+  string categorySlug = 1;
+}
+
+message GetRelatedProductsRequest {
+  string productId = 1;
+}
+
+message GetProductDetailsRequest {
+  string productId = 1;
+}
+
+message EmptyRequest {}
+
+// ===== Responses =====
+message ProductResponse {
+  Product product = 1;
+}
+
+message AlgoliaResponse {
+  string response = 1;
+}
+
+message CategoryTreeResponse {
+  repeated Category categories = 1;
+}
+
+message FilterAttributesResponse {
+  repeated FilterAttribute attributes = 1;
+}
+
+message SearchProductsResponse {
+  string response = 1;
+}
+
+message ProductsByCategoryResponse {
+  string response = 1;
+}
+
+message RelatedProductsResponse {
+  string response = 1;
+}
+
+message FeaturedProductsResponse {
+  string response = 1;
+}
+
+message ProductDetailsResponse {
+  string response = 1;
+}

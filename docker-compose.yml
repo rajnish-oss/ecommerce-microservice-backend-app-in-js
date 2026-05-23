@@ -1,0 +1,318 @@
+services:
+  api_gateway:
+    image: node:20-alpine
+    working_dir: /app/api_gateway
+    command: sh -c "npm install && npx tsx src/main.ts"
+    volumes:
+      - ./:/app
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      - user_service
+      - prodcatalog_service
+      - order_service
+      - cart_service
+      - payment_service
+      - inventory_service
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./api_gateway/src
+          target: /app/api_gateway/src
+          ignore:
+            - node_modules/
+        - action: sync+restart
+          path: ./api_gateway/package.json
+          target: /app/api_gateway/package.json
+        - action: sync+restart
+          path: ./api_gateway/package-lock.json
+          target: /app/api_gateway/package-lock.json
+    networks:
+      - micro-network
+
+  user_service:
+    build:
+      context: .
+      dockerfile: ./services/user/Dockerfile
+    command: sh -c "cd services/user && npx prisma db push --schema=prisma/schema.prisma && cd /src && npx tsx services/user/src/api/client.ts"
+    env_file:
+      - ./services/user/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@user_db:5432/user_service
+    secrets:
+      - my_private_key
+    depends_on:
+      - user_db
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./services/user/src
+          target: /src/services/user/src
+        - action: sync+restart
+          path: ./proto
+          target: /src/proto
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./services/user/prisma/schema.prisma
+    ports:
+      - "50051:50051"
+    networks:
+      micro-network:
+        aliases:
+          - user-service
+
+  prodcatalog_service:
+    build:
+      context: .
+      dockerfile: ./services/prodCatalog/Dockerfile
+    command: sh -c "npx tsx services/prodCatalog/src/api/client.ts"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@prodcatalog_db:5432/prod_catalog
+      MONGODB_URL: mongodb://prodcatalog_mongo:27017/prodCatalog
+    depends_on:
+      - prodcatalog_db
+      - prodcatalog_mongo
+    develop:
+      watch:
+        - action: sync
+          path: ./services/prodCatalog/src
+          target: /src/services/prodCatalog/src
+        - action: sync
+          path: ./proto
+          target: /src/proto
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./services/prodCatalog/prisma/schema.prisma
+    ports:
+      - "50056:50056"
+    networks:
+      - micro-network
+
+  prodcatalog_mongo:
+    image: mongo:7
+    ports:
+      - "27018:27017"
+    volumes:
+      - prodcatalog_mongo_data:/data/db
+    networks:
+      - micro-network
+
+  order_service:
+    build:
+      context: .
+      dockerfile: ./services/order/Dockerfile
+    command: sh -c "npx tsx services/order/src/api/client.ts"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@order_db:5432/order_service
+    depends_on:
+      - order_db
+    develop:
+      watch:
+        - action: sync
+          path: ./services/order/src
+          target: /src/services/order/src
+        - action: sync
+          path: ./proto
+          target: /src/proto
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./services/order/prisma/schema.prisma
+    ports:
+      - "50058:50058"
+    networks:
+      micro-network:
+        aliases:
+          - order-service
+
+  cart_service:
+    build:
+      context: .
+      dockerfile: ./services/cart/Dockerfile
+    command: sh -c "npx tsx services/cart/src/api/client.ts"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@cart_db:5432/cart_service
+    depends_on:
+      - cart_db
+      - prodcatalog_service
+    develop:
+      watch:
+        - action: sync
+          path: ./services/cart/src
+          target: /src/services/cart/src
+        - action: sync
+          path: ./proto
+          target: /src/proto
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./services/cart/prisma/schema.prisma
+    ports:
+      - "50054:50054"
+    networks:
+      - micro-network
+
+  payment_service:
+    build:
+      context: .
+      dockerfile: ./services/payment/Dockerfile
+    command: sh -c "npx tsx services/payment/src/api/client.ts"
+    env_file:
+      - ./services/payment/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@payment_db:5432/payment_service
+    depends_on:
+      - payment_db
+      - order_service
+    develop:
+      watch:
+        - action: sync
+          path: ./services/payment/src
+          target: /src/services/payment/src
+        - action: sync
+          path: ./proto
+          target: /src/proto
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./services/payment/prisma/schema.prisma
+    ports:
+      - "50052:50052"
+    networks:
+      - micro-network
+
+  inventory_service:
+    build:
+      context: .
+      dockerfile: ./services/inventory/Dockerfile
+    command: sh -c "npx tsx services/inventory/src/api/client.ts"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@inventory_db:5432/inventory_service
+    depends_on:
+      - inventory_db
+    develop:
+      watch:
+        - action: sync
+          path: ./services/inventory/src
+          target: /src/services/inventory/src
+        - action: sync
+          path: ./proto
+          target: /src/proto
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./services/inventory/prisma/schema.prisma
+    ports:
+      - "50059:50059"
+    networks:
+      - micro-network
+
+  user_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: user_service
+    ports:
+      - "5433:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    networks:
+      - micro-network
+
+  prodcatalog_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: prod_catalog
+    ports:
+      - "5434:5432"
+    volumes:
+      - prodcatalog_db_data:/var/lib/postgresql/data
+    networks:
+      - micro-network
+
+  order_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: order_service
+    ports:
+      - "5435:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    networks:
+      - micro-network
+
+  cart_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cart_service
+    ports:
+      - "5436:5432"
+    volumes:
+      - cart_db_data:/var/lib/postgresql/data
+    networks:
+      - micro-network
+
+  payment_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: payment_service
+    ports:
+      - "5437:5432"
+    volumes:
+      - payment_db_data:/var/lib/postgresql/data
+    networks:
+      - micro-network
+
+  inventory_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory_service
+    ports:
+      - "5438:5432"
+    volumes:
+      - inventory_db_data:/var/lib/postgresql/data
+    networks:
+      - micro-network
+
+networks:
+  micro-network:
+    driver: bridge
+
+volumes:
+  user_db_data:
+  prodcatalog_db_data:
+  order_db_data:
+  cart_db_data:
+  payment_db_data:
+  inventory_db_data:
+  prodcatalog_mongo_data:
+
+secrets:
+  my_private_key:
+    file: ./secretKeys/private_key.pem

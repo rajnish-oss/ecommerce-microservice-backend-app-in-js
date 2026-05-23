@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "jsonwebtoken": "^9.0.3",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "redis": "^5.11.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/express-session": "^1.18.2",
+    "@types/jsonwebtoken": "^9.0.10",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.21.0"
+  },
+  "start": "main.js",
+  "type": "module"
+}

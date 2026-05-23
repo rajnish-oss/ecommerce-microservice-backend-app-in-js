@@ -1,0 +1,53 @@
+http : 
+  port : 8080
+admin :
+  port : 8081
+  host : localhost
+apiEndpoints :
+  api :
+    host : localhost
+    path : '/api'
+  user :
+    host : localhost
+    path : ['/user','/user/*']
+  music :
+    host : localhost
+    path : ['/music','/music/*']
+serviceEndpoints :
+   httpbin :
+     url : 'http://httpbin.org'
+   userService :
+     url : 'http://localhost:3000'
+   musicService :
+     url : 'http://localhost:3001'
+policies :
+   - auth
+   - cors
+   - logging
+   - rateLimiter
+   - oAuth
+pipelines :
+   default :
+      apiEndpoints :
+          - api
+      policies :
+          - proxy :
+              - action :
+                  serviceEndpoints : httpbin
+                  changeOrigin : true
+userPolicies :
+    apiEndpoints : 
+        - user
+    policies :
+        - proxy :
+            - action :
+                serviceEndpoints : userService
+                changeOrigin : true
+musicPolicies :
+    apiEndpoints : 
+        - music
+    policies :
+        - proxy :
+            - action :
+                serviceEndpoints : musicService
+                changeOrigin : true 

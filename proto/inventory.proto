@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package inventory;
+
+message Product {
+  int32 productId = 1;
+  string name = 2;
+  int32 stock = 3;
+  double price = 4;
+  string category = 5;
+  string description = 6;
+  bool isActive = 7;
+  string createdAt = 8;
+  string updatedAt = 9;
+}
+
+message ProductData {
+  int32 productId = 1;
+  string name = 2;
+  int32 stock = 3;
+  double price = 4;
+  string category = 5;
+  string description = 6;
+  bool isActive = 7;
+}
+
+message AddProductRequest {
+  Product product = 1;
+}
+
+message UpdateProductRequest {
+  int32 productId = 1;
+  ProductData data = 2;
+}
+
+message ReserveStockRequest {
+  int32 productId = 1;
+  int32 amount = 2;
+}
+
+message GetLowStockProductsRequest {
+  int32 threshold = 1;
+}
+
+message ProductResponse {
+  Product product = 1;
+}
+
+message ProductsResponse {
+  repeated Product products = 1;
+}
+
+service InventoryService {
+  rpc AddProduct(AddProductRequest) returns (ProductResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (ProductResponse);
+  rpc ReserveStock(ReserveStockRequest) returns (ProductResponse);
+  rpc GetLowStockProducts(GetLowStockProductsRequest) returns (ProductsResponse);
+}
