@@ -11,4 +11,15 @@
 
 # IDE configurations
 .idea/
-.vscode/
+.vscode/\
+
+# Cryptographic keys and certificates
+*.pem
+*.key
+*.crt
+*.pub
+**/*.pem
+**/*.key
+
+*/secretKeys
+**.pem
