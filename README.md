@@ -132,46 +132,46 @@ The API Gateway exposes a set of HTTP endpoints that forward requests to the bac
 Reference (method, path, request shape → gRPC method):
 
 - **User** (`/api/user`)
-	- `POST /login` — body: `{ ...credentials }` → `UserService.Login`
-	- `POST /register` — body: `{ ...user }` → `UserService.Register`
-	- `POST /google-auth` — initiates Google OAuth (passport)
-	- `GET /google/callback` — query params from provider → `UserService.GoogleCallback`
+	- `POST /login` — Authenticate user (email/password) → `UserService.Login`
+	- `POST /register` — Create new user account → `UserService.Register`
+	- `POST /google-auth` — Initiate Google OAuth (passport)
+	- `GET /google/callback` — Google OAuth callback → `UserService.GoogleCallback`
 
 - **Product Catalog** (`/api/product-cat`) — protected
-	- `POST /products` — body: `{ product: { ... } }` → `ProductCatalogService.AddProduct`
-	- `PUT /products` — body: request object for `UpdateProduct` → `ProductCatalogService.UpdateProduct`
-	- `POST /products/archive` — body: `{ ... }` → `ProductCatalogService.ArchiveProduct`
-	- `POST /sync/algolia` — body: `{ ... }` → `ProductCatalogService.SyncToAlgolia`
-	- `GET /categories/tree/:productId` → `ProductCatalogService.GetCategoryTree` (params: `productId`)
-	- `GET /categories/filters/:categoryId` → `ProductCatalogService.GetFilterAttributes` (params: `categoryId`)
-	- `GET /search/:query` → `ProductCatalogService.SearchProducts` (params: `query`)
-	- `GET /category/:categorySlug` → `ProductCatalogService.GetProductsByCategory` (params: `categorySlug`)
-	- `GET /related/:productId` → `ProductCatalogService.GetRelatedProducts` (params: `productId`)
-	- `GET /featured` → `ProductCatalogService.GetFeaturedProducts`
-	- `GET /products/:productId` → `ProductCatalogService.GetProductDetails` (params: `productId`)
+	- `POST /products` — Create a product → `ProductCatalogService.AddProduct`
+	- `PUT /products` — Update product fields → `ProductCatalogService.UpdateProduct`
+	- `POST /products/archive` — Archive (soft-delete) a product → `ProductCatalogService.ArchiveProduct`
+	- `POST /sync/algolia` — Sync product data to Algolia → `ProductCatalogService.SyncToAlgolia`
+	- `GET /categories/tree/:productId` — Get category tree for product → `ProductCatalogService.GetCategoryTree` (params: `productId`)
+	- `GET /categories/filters/:categoryId` — Get filter attributes for a category → `ProductCatalogService.GetFilterAttributes` (params: `categoryId`)
+	- `GET /search/:query` — Full-text search for products → `ProductCatalogService.SearchProducts` (params: `query`)
+	- `GET /category/:categorySlug` — List products in a category → `ProductCatalogService.GetProductsByCategory` (params: `categorySlug`)
+	- `GET /related/:productId` — Get related/recommended products → `ProductCatalogService.GetRelatedProducts` (params: `productId`)
+	- `GET /featured` — Get featured products → `ProductCatalogService.GetFeaturedProducts`
+	- `GET /products/:productId` — Get product details → `ProductCatalogService.GetProductDetails` (params: `productId`)
 
 - **Payment** (`/api/payment`)
-	- `POST /products` — body: `{ ... }` → `PaymentService.CreateProduct`
-	- `PUT /products` — body: `{ ... }` → `PaymentService.UpdateProduct`
-	- `POST /checkout` — body: `{ ... }` → `PaymentService.CreateCheckoutSession`
+	- `POST /products` — Create a payment product/pricing entry → `PaymentService.CreateProduct`
+	- `PUT /products` — Update payment product/pricing → `PaymentService.UpdateProduct`
+	- `POST /checkout` — Create a checkout session → `PaymentService.CreateCheckoutSession`
 
 - **Order** (`/api/order`)
-	- `POST /` — body: `{ orderDetail: { ... } }` → `OrderService.CreateOrder`
-	- `PATCH /status` — body: `{ orderDetail: { ... } }` → `OrderService.UpdateStatus`
-	- `GET /:orderId` — param: numeric `orderId` → `OrderService.GetOrder`
-	- `DELETE /` — body: `{ orderDetail: { ... } }` → `OrderService.DeleteOrder`
+	- `POST /` — Create a new order → `OrderService.CreateOrder`
+	- `PATCH /status` — Update an order's status → `OrderService.UpdateStatus`
+	- `GET /:orderId` — Get order details → `OrderService.GetOrder`
+	- `DELETE /` — Delete an order → `OrderService.DeleteOrder`
 
 - **Inventory** (`/api/inventory`)
-	- `POST /add-product` — body: `{ ... }` → `InventoryService.AddProduct`
-	- `PUT /update-product` — body: `{ ... }` → `InventoryService.UpdateProduct`
-	- `POST /reserve-stock` — body: `{ product_id: string, amount: number }` → `InventoryService.ReserveStock`
-	- `GET /low-stock/:threshold` — param: numeric `threshold` → `InventoryService.GetLowStockProducts`
+	- `POST /add-product` — Add a product to inventory → `InventoryService.AddProduct`
+	- `PUT /update-product` — Update inventory product fields → `InventoryService.UpdateProduct`
+	- `POST /reserve-stock` — Reserve a quantity of stock → `InventoryService.ReserveStock`
+	- `GET /low-stock/:threshold` — List products below threshold → `InventoryService.GetLowStockProducts`
 
 - **Cart** (`/api/cart`)
-	- `POST /items` — body: `{ ... }` → `CartService.AddItem`
-	- `DELETE /items` — body: `{ ... }` → `CartService.RemoveItem`
-	- `GET /total/:userId` — param: numeric `userId` → `CartService.TotalSum` (sent as `user_id`)
-	- `GET /:userId` — param: numeric `userId` → `CartService.GetCart` (sent as `user_id`)
+	- `POST /items` — Add an item to user's cart → `CartService.AddItem`
+	- `DELETE /items` — Remove an item from cart → `CartService.RemoveItem`
+	- `GET /total/:userId` — Get cart total for user → `CartService.TotalSum` (sent as `user_id`)
+	- `GET /:userId` — Get current cart for user → `CartService.GetCart` (sent as `user_id`)
 
 
 	### Examples: `curl` and `grpcurl`
