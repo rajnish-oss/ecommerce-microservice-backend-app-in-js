@@ -43,7 +43,7 @@ export const getOrderEvent = async () => {
         if (await isAlreadyProcessed(event.eventId)) return;
 
         // ✅ Core business logic
-        const updatedProduct = await inventoryService.deacreaseStock(
+        const updatedProduct = await inventoryService.decreaseStock(
           event.productId,
           event.quantity
         );

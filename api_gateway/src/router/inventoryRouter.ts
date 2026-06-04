@@ -31,7 +31,7 @@ router.post('/add-product', async (req: Request, res: Response) => {
 
 	try {
 		const response = await new Promise((resolve, reject) => {
-			client.AddProduct({ product: req.body }, (err: any, result: any) => {
+			client.AddProduct(req.body, (err: any, result: any) => {
 				if (err) {
 					reject(err);
 					return;

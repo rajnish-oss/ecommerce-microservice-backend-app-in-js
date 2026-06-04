@@ -2,7 +2,7 @@ services:
   api_gateway:
     image: node:20-alpine
     working_dir: /app/api_gateway
-    command: sh -c "npm install && npx tsx src/main.ts"
+    command: sh -c "npm install && node --import tsx src/main.ts"
     volumes:
       - ./:/app
     ports:
@@ -198,7 +198,7 @@ services:
     build:
       context: .
       dockerfile: ./services/inventory/Dockerfile
-    command: sh -c "npx tsx services/inventory/src/api/client.ts"
+    command: sh -c "cd services/inventory && npx prisma migrate deploy --schema=prisma/schema.prisma && cd /src && npx tsx services/inventory/src/api/client.ts"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@inventory_db:5432/inventory_service
     depends_on:

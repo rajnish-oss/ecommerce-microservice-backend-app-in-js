@@ -3,15 +3,23 @@ import * as grpc from '@grpc/grpc-js';
 
 
 export const InventoryController = (inventory: InventoryService) => {
+    const getProductId = (request: any) => String(request.product_id ?? request.productId ?? "");
+    const getProductUpdateData = (data: any) => ({
+        name: data?.name,
+        price: data?.price,
+        description: data?.description,
+        stock: data?.stock,
+        category: data?.category,
+    });
+
     return {
         AddProduct: async (call: any, callback: any) => {
             try {
-                const product = await call.request.product;
-                const response = await inventory.addProduct(product);
+                const response = await inventory.addProduct(call.request);
                 callback(null, { product: response });
             } catch (error:any) {
                 callback({
-                    code: grpc.status.NOT_FOUND,
+                    code: error.message === "Product already exists" ? grpc.status.ALREADY_EXISTS : grpc.status.INTERNAL,
                     details: error.message
                 });
             }
@@ -19,8 +27,8 @@ export const InventoryController = (inventory: InventoryService) => {
 
         UpdateProduct: async (call: any, callback: any) => {
             try {
-                const productId = await call.request.productId;
-                const data = await call.request.data;
+                const productId = getProductId(call.request);
+                const data = getProductUpdateData(call.request.data);
                 const response = await inventory.updateProduct(productId, data);
                 callback(null, { product: response });
             } catch (error:any) {
@@ -33,8 +41,8 @@ export const InventoryController = (inventory: InventoryService) => {
 
         ReserveStock: async (call: any, callback: any) => {
             try {
-                const productId = await call.request.productId;
-                const amount = await call.request.amount;
+                const productId = getProductId(call.request);
+                const amount = call.request.amount;
                 const response = await inventory.reserveStock(productId, amount);
                 callback(null, { product: response });
             } catch (error:any) {
@@ -47,7 +55,7 @@ export const InventoryController = (inventory: InventoryService) => {
 
         GetLowStockProducts: async (call: any, callback: any) => {
             try {
-                const threshold = await call.request.threshold;
+                const threshold = call.request.threshold;
                 const response = await inventory.getLowStockProducts(threshold);
                 callback(null, { products: response });
             } catch (error:any) {

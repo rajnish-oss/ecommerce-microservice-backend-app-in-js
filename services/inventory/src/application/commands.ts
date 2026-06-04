@@ -36,7 +36,7 @@ export class InventoryService {
         }
     }
 
-    async deacreaseStock(productId: string, amount: number) {
+    async decreaseStock(productId: string, amount: number) {
         try {
             return await this.prisma.product.update({
                 where: { productId },
@@ -49,21 +49,43 @@ export class InventoryService {
         }
     }
 
+    async deacreaseStock(productId: string, amount: number) {
+        return this.decreaseStock(productId, amount);
+    }
+
     // Atomic and Safe
     async reserveStock(productId: string, amount: number) {
         try {
-            return await this.prisma.product.update({
-                where: { 
-                    productId,
-                    stock: { gte: amount } 
-                },
-                data: {
-                    stock: { decrement: amount }
+            return await this.prisma.$transaction(async (tx) => {
+                const result = await tx.product.updateMany({
+                    where: {
+                        productId,
+                        stock: { gte: amount }
+                    },
+                    data: {
+                        stock: { decrement: amount }
+                    }
+                });
+
+                if (result.count === 0) {
+                    throw new Error("Oversold: Insufficient stock available.");
                 }
+
+                const updatedProduct = await tx.product.findUnique({
+                    where: { productId }
+                });
+
+                if (!updatedProduct) {
+                    throw new Error("Product not found or update failed");
+                }
+
+                return updatedProduct;
             });
         } catch (error) {
-            // P2025 is Prisma's error code for "Record not found" 
-            // but here it also triggers if the 'where' condition (gte) fails
+            if (error instanceof Error && error.message === "Oversold: Insufficient stock available.") {
+                throw error;
+            }
+
             throw new Error("Oversold: Insufficient stock available.");
         }
     }
