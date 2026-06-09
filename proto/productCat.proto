@@ -8,6 +8,10 @@ service ProductCatalogService {
   rpc AddProduct(AddProductRequest) returns (ProductResponse);
   rpc UpdateProduct(UpdateProductRequest) returns (ProductResponse);
   rpc ArchiveProduct(ArchiveProductRequest) returns (ProductResponse);
+  rpc AddCategory(AddCategoryRequest) returns (CategoryResponse);
+  rpc AddCategoryTree(AddCategoryTreeRequest) returns (CategoryTreeNodeResponse);
+  rpc UpdateCategory(UpdateCategoryRequest) returns (CategoryResponse);
+  rpc ArchiveCategory(ArchiveCategoryRequest) returns (CategoryResponse);
   
   // Miscel Commands
   rpc SyncToAlgolia(SyncToAlgoliaRequest) returns (AlgoliaResponse);
@@ -41,6 +45,16 @@ message Category {
   string name = 2;
   string slug = 3;
   string parent = 4;
+  bool isActive = 5;
+}
+
+message CategoryTreeNode {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string parent = 4;
+  bool isActive = 5;
+  repeated CategoryTreeNode children = 6;
 }
 
 message FilterAttribute {
@@ -59,6 +73,25 @@ message UpdateProductRequest {
 
 message ArchiveProductRequest {
   string productId = 1;
+}
+
+message AddCategoryRequest {
+  string name = 1;
+}
+
+message AddCategoryTreeRequest {
+  CategoryTreeNode category = 1;
+}
+
+message UpdateCategoryRequest {
+  string categoryId = 1;
+  optional string name = 2;
+  optional string slug = 3;
+  optional string parent = 4;
+}
+
+message ArchiveCategoryRequest {
+  string categoryId = 1;
 }
 
 // ===== Miscel Requests =====
@@ -96,6 +129,14 @@ message EmptyRequest {}
 // ===== Responses =====
 message ProductResponse {
   Product product = 1;
+}
+
+message CategoryResponse {
+  Category category = 1;
+}
+
+message CategoryTreeNodeResponse {
+  CategoryTreeNode category = 1;
 }
 
 message AlgoliaResponse {

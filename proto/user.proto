@@ -13,8 +13,14 @@ service UserService {
   // Verifies user email via a token
   rpc VerifyEmail (VerifyEmailRequest) returns (UserResponse);
 
-  // Initiates or completes Google OAuth login
-  rpc GoogleLogin (Empty) returns (UserResponse);
+  // Sends a password reset link to the user's email
+  rpc ForgotPassword (ForgotPasswordRequest) returns (UserResponse);
+
+  // Resets the user's password using a reset token
+  rpc ResetPassword (ResetPasswordRequest) returns (UserResponse);
+
+  // Completes Google OAuth using the authorization code
+  rpc GoogleCallback (GoogleCallbackRequest) returns (UserResponse);
 }
 
 // --- Request Messages ---
@@ -34,7 +40,18 @@ message VerifyEmailRequest {
   string token = 1;
 }
 
-message Empty {}
+message ForgotPasswordRequest {
+  string email = 1;
+}
+
+message ResetPasswordRequest {
+  string token = 1;
+  string newPassword = 2;
+}
+
+message GoogleCallbackRequest {
+  string code = 1;
+}
 
 // --- Response Messages ---
 

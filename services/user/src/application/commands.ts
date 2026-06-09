@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 import { Resend } from "resend";
 import express, { Request, Response } from "express";
 import passport from "passport";
-import { OAuth2Client } from "google-auth-library";
+import { OAuth2Client, GoogleAuth } from "google-auth-library";
 import passportConfig from "../infra/passport.config";
 import fs from "fs";
 import path from "path";
@@ -126,15 +126,66 @@ export class UserService{
         }
     }
 
-    async googleLogin(req: Request, res: Response){
+    async forgotPassword(email: string) {
         try {
-            passport.authenticate("google", {
-                scope: ["https://www.googleapis.com/auth/plus.login", "email"],
-            })(req, res);
-        } catch (error: any) {
-            throw new Error(`Google login failed: ${error.message || error}`);
+            const user = await this.prisma.user.findUnique({
+                where: { email }
+            });
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            const token = jwt.sign(
+                {
+                    sub: user.id,
+                    email: user.email
+                },
+                getPrivateKey(),
+                { algorithm: 'RS256', expiresIn: '15m' }
+            );
+
+            if (!token) {
+                throw new Error("Failed to generate token");
+            }
+
+            const resetUrl = `https://localhost:8080/reset-password?token=${token}`;
+
+            await resend.emails.send({
+            from: "Acme <onboarding@resend.dev>",
+            to: [email],
+            subject: "Reset your password",
+            html: `<p>Click here to reset: <a href="${resetUrl}">Reset Link</a></p>`,
+            });
+        }catch (error: any) {
+            throw new Error(`Password reset failed: ${error.message || error}`);
         }
     }
+
+    async resetPassword(token: string, newPassword: string) {
+        try {
+            const payload = jwt.verify(token, getPrivateKey()) as any;
+            const user = await this.prisma.user.findUnique({
+                where: { id: payload.sub }
+            });
+
+            if (!user) {
+                throw new Error("User not found");
+            }
+
+            const passwordHash = await bcrypt.hash(newPassword, 10);
+
+            await this.prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    password: passwordHash
+                }
+            });
+        } catch (error: any) {
+            throw new Error(`Password reset failed: ${error.message || error}`);
+        }
+    }
+
 
     async googleCallback(code: string){
         try {

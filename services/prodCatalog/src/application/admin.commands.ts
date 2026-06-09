@@ -1,6 +1,13 @@
 import ProductModel from "../model/productModel";
 import Category from "../model/categoryModel";
-import { CategoryTreeInput, CategoryTreeResult, productProps,IProduct } from "../types/index";
+import { Types } from "mongoose";
+import {
+    CategoryTreeInput,
+    CategoryTreeResult,
+    IProduct,
+    productProps,
+    UpdateCategoryInput,
+} from "../types/index";
 
 
 export class adminCommands {
@@ -26,38 +33,48 @@ export class adminCommands {
     }
 
     async updateProduct(productData: IProduct) {
-       try{ 
         const product = await this.productModel.findOneAndUpdate(
             { productId: productData.productId },
             { $set: productData },
-            { new: true }
-        )
+            { new: true, runValidators: true }
+        );
+
+        if (!product) {
+            throw new Error("Product not found");
+        }
 
         return product;
-       } catch (error) {
-        throw new Error("Product not found or update failed");
-       }
     }
 
     async archiveProduct(productId: string) {
-        try {
-            const product = await this.productModel.findOneAndUpdate(
-                { productId: productId },
-                { $set: { isActive: false } },
-                { new: true }
-            );
+        const product = await this.productModel.findOneAndUpdate(
+            { productId },
+            { $set: { isActive: false } },
+            { new: true }
+        );
 
-            return product;
-        } catch (error) {
-            throw new Error("Product not found or archive failed");
+        if (!product) {
+            throw new Error("Product not found");
         }
-    
+
+        return product;
     }
 
     async addCategory(categoryName: string) {
+        const name = categoryName.trim();
+        if (!name) {
+            throw new Error("Category name is required");
+        }
+
+        const slug = this.normalizeSlug(name);
+        const existingCategory = await Category.findOne({ slug });
+        if (existingCategory) {
+            throw new Error("Category already exists");
+        }
+
         const category = await Category.create({
-            name: categoryName,
-            slug: this.normalizeSlug(categoryName),
+            name,
+            slug,
             parent: null,
         });
 
@@ -65,9 +82,20 @@ export class adminCommands {
     }
 
     async addCategoryTree(category: CategoryTreeInput, parentId: string | null = null): Promise<CategoryTreeResult> {
+        const name = category.name.trim();
+        if (!name) {
+            throw new Error("Category name is required");
+        }
+
+        const slug = this.normalizeSlug(category.slug || name);
+        const existingCategory = await Category.findOne({ slug });
+        if (existingCategory) {
+            throw new Error(`Category with slug "${slug}" already exists`);
+        }
+
         const createdCategory = await Category.create({
-            name: category.name,
-            slug: category.slug ? this.normalizeSlug(category.slug) : this.normalizeSlug(category.name),
+            name,
+            slug,
             parent: parentId,
         });
 
@@ -80,13 +108,73 @@ export class adminCommands {
         }
 
         return {
-            _id: createdCategory._id.toString(),
+            id: createdCategory._id.toString(),
             name: createdCategory.name,
-            slug: createdCategory.slug ?? this.normalizeSlug(createdCategory.name),
+            slug: createdCategory.slug,
             parent: createdCategory.parent ? createdCategory.parent.toString() : null,
+            isActive: createdCategory.isActive,
             children: createdChildren,
         };
     }
 
+    async updateCategory(input: UpdateCategoryInput) {
+        const category = await Category.findById(input.categoryId);
+        if (!category) {
+            throw new Error("Category not found");
+        }
+
+        if (input.parent === input.categoryId) {
+            throw new Error("Category cannot be its own parent");
+        }
+
+        if (input.parent) {
+            const parent = await Category.findById(input.parent);
+            if (!parent) {
+                throw new Error("Parent category not found");
+            }
+        }
+
+        if (input.name !== undefined) {
+            const name = input.name.trim();
+            if (!name) {
+                throw new Error("Category name cannot be empty");
+            }
+            category.name = name;
+        }
+
+        if (input.slug !== undefined || input.name !== undefined) {
+            const slug = this.normalizeSlug(input.slug || category.name);
+            const slugOwner = await Category.findOne({
+                slug,
+                _id: { $ne: category._id },
+            });
+            if (slugOwner) {
+                throw new Error(`Category with slug "${slug}" already exists`);
+            }
+            category.slug = slug;
+        }
+
+        if (input.parent !== undefined) {
+            category.parent = input.parent
+                ? new Types.ObjectId(input.parent)
+                : null;
+        }
+
+        return category.save();
+    }
+
+    async archiveCategory(categoryId: string) {
+        const category = await Category.findByIdAndUpdate(
+            categoryId,
+            { $set: { isActive: false } },
+            { new: true }
+        );
+
+        if (!category) {
+            throw new Error("Category not found");
+        }
+
+        return category;
+    }
 
 }

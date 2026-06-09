@@ -5,7 +5,14 @@ import Category from "../model/categoryModel";
 import { Types } from "mongoose";
 
 
-const client = algoliasearch("ALGOLIA_APPLICATION_ID", "ALGOLIA_API_KEY");
+const algoliaAppId = process.env.ALGOLIA_APPLICATION_ID;
+const algoliaApiKey = process.env.ALGOLIA_API_KEY;
+
+if (!algoliaAppId || !algoliaApiKey) {
+    throw new Error("ALGOLIA_APPLICATION_ID and ALGOLIA_API_KEY must be set");
+}
+
+const client = algoliasearch(algoliaAppId, algoliaApiKey);
 
 export class publicCommands{
     private readonly productModel = ProductModel;
@@ -13,7 +20,7 @@ export class publicCommands{
     private readonly defaultPage = 1;
     private readonly defaultLimit = 10;
 
-    async searchProducts(query: string) {
+    async searchProducts(query: string, page: number = this.defaultPage, limit: number = this.defaultLimit) {
         try {
             const normalizedQuery = query.trim();
 
@@ -26,12 +33,14 @@ export class publicCommands{
                     {
                         indexName: "products",
                         query: normalizedQuery,
-                        hitsPerPage: 50,
+                        page: page - 1,
+                        hitsPerPage: limit,
                     },
                     {
                         indexName: "categories",
                         query: normalizedQuery,
-                        hitsPerPage: 50,
+                        page: page - 1,
+                        hitsPerPage: limit,
                     },
                 ],
             });
@@ -45,7 +54,7 @@ export class publicCommands{
         }
     }
 
-    async getProductsByCategory(categorySlug: string) {
+    async getProductsByCategory(categorySlug: string, page: number = this.defaultPage, limit: number = this.defaultLimit) {
         try {
             const normalizedSlug = categorySlug.trim().toLowerCase();
 
@@ -53,12 +62,12 @@ export class publicCommands{
                 throw new Error("Category slug is required");
             }
 
-            const page = this.defaultPage;
-            const limit = this.defaultLimit;
             const skip = (page - 1) * limit;
 
             const rootCategory = await Category.findOne({ slug: normalizedSlug })
                 .select({ _id: 1, name: 1, slug: 1 })
+                .skip(skip)
+                .limit(limit)
                 .lean<{ _id: Types.ObjectId; name: string; slug: string } | null>();
 
             if (!rootCategory) {
@@ -232,8 +241,8 @@ export class publicCommands{
                 throw new Error("Product not found");
             }
 
-            const imageGallery = Array.isArray(product.imageGallery)
-                ? product.imageGallery
+            const image = Array.isArray(product.image)
+                ? product.image
                 : Array.isArray(product.images)
                 ? product.images
                 : [];
@@ -241,25 +250,15 @@ export class publicCommands{
             const technicalSpecifications =
                 product.technicalSpecifications ?? product.specifications ?? {};
 
-            const metadata = {
-                ...(product.metadata ?? {}),
-                seoTitle: product.seoTitle ?? null,
-                seoDescription: product.seoDescription ?? null,
-                tags: Array.isArray(product.tags) ? product.tags : [],
-                brand: product.brand ?? null,
-            };
-
             return {
                 productId: product.productId,
                 name: product.name,
                 price: product.price,
                 stock: product.stock,
                 description: product.description ?? "",
-                longDescription: product.longDescription ?? product.description ?? "",
                 category: product.category,
-                imageGallery,
+                image,
                 technicalSpecifications,
-                metadata,
                 relatedProductIds: Array.isArray(product.relatedProductIds)
                     ? product.relatedProductIds
                     : [],

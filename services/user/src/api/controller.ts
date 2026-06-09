@@ -40,10 +40,12 @@ const userHandler = (userService: UserService) => ({
         }
     },
 
-    GoogleAuth : async (call: any, callback: any) => {
+    ForgotPassword : async (call: any, callback: any) => {
         try {
-            const result = await userService.googleLogin(call.request, call.response);
-            callback(null, result);    
+            await userService.forgotPassword(call.request.email);
+            callback(null, {
+                message: "If the account exists, a password reset email has been sent."
+            });
         } catch (error: any) {
             callback({
                 code: grpc.status.INTERNAL,
@@ -51,6 +53,24 @@ const userHandler = (userService: UserService) => ({
             });
         }
     },
+
+    ResetPassword : async (call: any, callback: any) => {
+        try {
+            await userService.resetPassword(
+                call.request.token,
+                call.request.newPassword
+            );
+            callback(null, {
+                message: "Password reset successfully."
+            });
+        } catch (error: any) {
+            callback({
+                code: grpc.status.INTERNAL,
+                details: error.message
+            });
+        }
+    },
+
     GoogleCallback : async (call: any, callback: any) => {
         try {
             const result = await userService.googleCallback(call.request.code);

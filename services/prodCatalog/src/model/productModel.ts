@@ -1,6 +1,5 @@
 import { InferSchemaType, Model, Schema, model, models } from "mongoose";
 import mongoose from "mongoose";
-import Category from "./categoryModel";
 import { randomBytes } from "crypto";
 
 function uuidv7(): string {
@@ -28,6 +27,12 @@ const productSchema = new Schema(
       immutable: true,
       default: uuidv7,
     },
+    image: [
+      {
+        index: { type: Number, required: true },
+        url: { type: String, required: true, trim: true },
+      },
+    ],
     name: {
       type: String,
       required: true,
@@ -55,10 +60,39 @@ const productSchema = new Schema(
       trim: true,
       default: "",
     },
+    brand:{
+      type: String,
+      required: false,
+      trim: true,
+      default: "",
+    },
     isActive: {
       type: Boolean,
       required: true,
       default: true,
+    },
+    isFeatured: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    showOnHomepage: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    promotionActive: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    promoStartAt: {
+      type: Date,
+      required: false,
+    },
+    promoEndAt: {
+      type: Date,
+      required: false,
     },
   },
   {

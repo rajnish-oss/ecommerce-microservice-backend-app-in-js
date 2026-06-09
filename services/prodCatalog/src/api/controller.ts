@@ -3,6 +3,16 @@ import { adminCommands } from "../application/admin.commands";
 import { miscelCommands } from '../application/miscel.commands';
 import { publicCommands } from '../application/public.commands';
 
+function mapCategory(category: any) {
+  return {
+    id: category._id?.toString() ?? category.id,
+    name: category.name,
+    slug: category.slug,
+    parent: category.parent?.toString() ?? '',
+    isActive: category.isActive,
+  };
+}
+
 export const InventoryHandler = (
   query: adminCommands,
   miscelQuery: miscelCommands,
@@ -25,7 +35,7 @@ export const InventoryHandler = (
 
   UpdateProduct: async (call: any, callback: any) => {
     try {
-      const product = await query.updateProduct(call.request);
+      const product = await query.updateProduct(call.request.product ?? call.request);
       callback(null, { product });
     } catch (error: any) {
       callback({
@@ -39,6 +49,54 @@ export const InventoryHandler = (
     try {
       const product = await query.archiveProduct(call.request.productId);
       callback(null, { product });
+    } catch (error: any) {
+      callback({
+        code: grpc.status.NOT_FOUND,
+        details: error.message
+      });
+    }
+  },
+
+  AddCategory: async (call: any, callback: any) => {
+    try {
+      const category = await query.addCategory(call.request.name);
+      callback(null, { category: mapCategory(category) });
+    } catch (error: any) {
+      callback({
+        code: grpc.status.INVALID_ARGUMENT,
+        details: error.message
+      });
+    }
+  },
+
+  AddCategoryTree: async (call: any, callback: any) => {
+    try {
+      const category = await query.addCategoryTree(call.request.category);
+      callback(null, { category });
+    } catch (error: any) {
+      callback({
+        code: grpc.status.INVALID_ARGUMENT,
+        details: error.message
+      });
+    }
+  },
+
+  UpdateCategory: async (call: any, callback: any) => {
+    try {
+      const category = await query.updateCategory(call.request);
+      callback(null, { category: mapCategory(category) });
+    } catch (error: any) {
+      callback({
+        code: grpc.status.INVALID_ARGUMENT,
+        details: error.message
+      });
+    }
+  },
+
+  ArchiveCategory: async (call: any, callback: any) => {
+    try {
+      const category = await query.archiveCategory(call.request.categoryId);
+      callback(null, { category: mapCategory(category) });
     } catch (error: any) {
       callback({
         code: grpc.status.NOT_FOUND,
@@ -61,7 +119,7 @@ export const InventoryHandler = (
 
   GetCategoryTree: async (call: any, callback: any) => {
     try {
-      const categories = await miscelQuery.getCategoryTree(call.request.productId);
+      const categories = await miscelQuery.getCategoryTreeForProduct(call.request.productId);
       callback(null, { categories });
     } catch (error: any) {
       callback({

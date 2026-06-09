@@ -24,9 +24,17 @@ export interface CategoryTreeInput {
 }
 
 export interface CategoryTreeResult {
-  _id: string;
+  id: string;
   name: string;
   slug: string;
   parent: string | null;
+  isActive: boolean;
   children: CategoryTreeResult[];
+}
+
+export interface UpdateCategoryInput {
+  categoryId: string;
+  name?: string;
+  slug?: string;
+  parent?: string | null;
 }

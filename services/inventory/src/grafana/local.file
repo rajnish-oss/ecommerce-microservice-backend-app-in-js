@@ -1,0 +1,19 @@
+local.file "config" {
+  filename = "/etc/app/settings.yaml"
+}
+
+prometheus.scrape "inventory_log" {
+  targets = [{"__address__" = "localhost:50059"}]
+  forward_to = [prometheus.remote_write.logs.receiver]
+}
+
+prometheus.remote_write "log" {
+  endpoint {
+    url = "https://prometheus.example.com/api/v1/write"
+
+    basic_auth {
+      username = "inventory_log"
+      password = "inventory_password"  // Reference the file content
+    }
+  }
+}

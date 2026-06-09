@@ -1,10 +1,9 @@
 import ProductModel from "../model/productModel";
-import { productProps,IProduct } from "../types/index";
 import { algoliasearch } from "algoliasearch";
 import Category from "../model/categoryModel";
 
 
-const client = algoliasearch("ALGOLIA_APPLICATION_ID", "ALGOLIA_API_KEY");
+const client = algoliasearch(process.env.ALGOLIA_APPLICATION_ID, process.env.ALGOLIA_API_KEY);
 
 interface CategoryNode {
     _id: string;
@@ -44,23 +43,32 @@ export class miscelCommands {
     async syncToAlgolia(productId: string) {
         try {
             const product = await this.productModel.findOne({ productId });
+            const indexName = "products";
 
             if (!product) {
                 throw new Error("Product not found");
             }
-            const response = await this.algoliaClient.addOrUpdateObject({
-                indexName: product.name, // Replace with your index name
+            const algoliaProduct = {
+                ...product.toJSON(),
                 objectID: product.productId,
-                body: {
-                    objectID: product.productId,
-                    name: product.name,
-                    price: product.price,
-                    category: product.category,
-                    description: product.description || '',
+            };
+
+            const response = await this.algoliaClient.saveObjects({
+                indexName, // Replace with your index name
+                objects: [algoliaProduct],
+                waitForTasks: true,
+            });
+
+            const { taskID } = await this.algoliaClient.setSettings({
+                indexName,
+                indexSettings: {
+                attributesForFaceting: ["product_type"],
                 },
             });
 
-            return response;
+            const res = await this.algoliaClient.waitForTask({ indexName, taskID });
+
+            return res;
         } catch (error) {
             console.error(`Failed to sync product ${productId} to Algolia:`, error);
             throw new Error(
@@ -71,38 +79,40 @@ export class miscelCommands {
         }
     }
 
-    async getCategoryTree(productId: string): Promise<CategoryNode[]> {
-        try {
-            const categoryTree = await Category.aggregate<CategoryNode>([
-            // 1. Find the root nodes first
-                { $match: { parent: null } },
-                
-                // 2. Recursively find all children
-                {
-                    $graphLookup: {
-                    from: 'categories',           // The collection name
-                    startWith: '$_id',            // Start with the root ID
-                    connectFromField: '_id',
-                    connectToField: 'parent',
-                    as: 'children_recursive',     // Temporary array of all descendants
-                    depthField: 'level'           // Optional: tracks how deep the node is
-                    }
-                }
-                ]);
-
-            const formattedTree = this.formatTree(categoryTree as CategoryNode[]);
-            
-            return formattedTree;
-
-        }catch (error) {
-            console.error(`Failed to sync product ${productId} to Algolia:`, error);
-            throw new Error(
-                `Algolia sync failed for product ${productId}: ${
-                    error instanceof Error ? error.message : 'Unknown error'
-                }`
-            );
+    async getCategoryTreeForProduct(productId: string): Promise<CategoryNode[]> {
+    try {
+        // 1. Fetch the product first to find out what category it belongs to
+        const product = await this.productModel.findOne({ productId });
+        if (!product) {
+            throw new Error(`Product with ID ${productId} not found`);
         }
+
+        // 2. Perform graph lookup upwards or downwards from that category
+        const categoryTree = await Category.aggregate<CategoryNode>([
+            { $match: { _id: product.category } },
+            {
+                $graphLookup: {
+                    from: 'categories',
+                    startWith: '$parent', // Looking UPWARDS to get the full breadcrumb path
+                    connectFromField: 'parent',
+                    connectToField: '_id',
+                    as: 'ancestors'
+                }
+            }
+        ]);
+
+        return this.formatTree(categoryTree);
+
+    } catch (error) {
+        // Log accurately: The database fetch failed, not the external Algolia API
+        console.error(`Database aggregation failed for product ${productId}:`, error);
+        throw new Error(
+            `Failed to generate category tree for product ${productId}: ${
+                error instanceof Error ? error.message : 'Unknown error'
+            }`
+        );
     }
+}
 
     async getFilterAttributes(categoryId: string): Promise<FilterAttribute[]> {
         try {

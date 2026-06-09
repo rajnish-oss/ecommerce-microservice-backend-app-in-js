@@ -76,6 +76,57 @@ router.post('/products/archive', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/categories', async (req: Request, res: Response) => {
+  if (!req.body?.name) {
+    return res.status(400).json({ message: 'Category name is required' });
+  }
+
+  try {
+    const response = await unaryCall('AddCategory', { name: req.body.name });
+    return res.status(201).json(response);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/categories/tree', async (req: Request, res: Response) => {
+  if (!req.body?.name) {
+    return res.status(400).json({ message: 'Category tree root is required' });
+  }
+
+  try {
+    const response = await unaryCall('AddCategoryTree', { category: req.body });
+    return res.status(201).json(response);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.put('/categories/:categoryId', async (req: Request, res: Response) => {
+  const { categoryId } = req.params;
+
+  try {
+    const response = await unaryCall('UpdateCategory', {
+      categoryId,
+      ...req.body,
+    });
+    return res.json(response);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/categories/:categoryId/archive', async (req: Request, res: Response) => {
+  const { categoryId } = req.params;
+
+  try {
+    const response = await unaryCall('ArchiveCategory', { categoryId });
+    return res.json(response);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 router.post('/sync/algolia', async (req: Request, res: Response) => {
   if (!req.body) {
     return res.status(400).json({ message: 'Invalid request' });
