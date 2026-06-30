@@ -21,7 +21,7 @@ export class OrderServices {
      * Creates or updates an order within a user's order list.
      * Uses upsert because of the composite ID [listId, productId].
      */
-    async createOrUpdateOrder(userId: number, productId: number, quantity: number): Promise<string> {
+    async createOrUpdateOrder(userId: string, productId: string, quantity: number): Promise<string> {
         try {
             await this.prisma.order.upsert({
                 where: {
@@ -51,7 +51,7 @@ export class OrderServices {
     /**
      * Updates the status of a specific product order for a user
      */
-    async updateStatus(userId: number, productId: number, status: OrderStatus): Promise<string> {
+    async updateStatus(userId: string, productId: string, status: OrderStatus): Promise<OrderStatus> {
         try {
             await this.prisma.order.update({
                 where: {
@@ -62,28 +62,32 @@ export class OrderServices {
                 },
                 data: { status: status }
             });
-            return "Status updated";
+            return status;
         } catch (err) {
-            return "Order not found";
+            throw new Error("Order not found");
         }
     }
 
     /**
      * Retrieves all orders for a specific user, including the parent list
      */
-    async getUserOrders(userId: number) {
-        return await this.prisma.orderList.findUnique({
-            where: { userId: userId },
-            include: {
-                orders: true // This fetches the array of orders
-            }
-        });
+    async getUserOrders(userId: string) {
+        try {
+            return await this.prisma.orderList.findUnique({
+                where: { userId: userId },
+                include: {
+                    orders: true // This fetches the array of orders
+                }
+            });
+        } catch (error) {
+            throw new Error("Error from order service : " + error);
+        }
     }
 
     /**
      * Deletes a specific product from a user's order list
      */
-    async deleteOrder(userId: number, productId: number): Promise<string> {
+    async deleteOrder(userId: string, productId: string): Promise<string> {
         try {
             await this.prisma.order.delete({
                 where: {
@@ -94,8 +98,8 @@ export class OrderServices {
                 }
             });
             return "Order deleted";
-        } catch (err) {
-            return "Could not delete order";
+        } catch (err:any ) {
+            throw new Error(`Database failure in deleteOrder: ${err instanceof Error ? err.message : err}`);
         }
     }
 }

@@ -11,6 +11,7 @@ import { authMiddleware } from './middlewares/authMiddleware';
 
 const app = express();
 
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
 app.use('/api/user', userRouter)

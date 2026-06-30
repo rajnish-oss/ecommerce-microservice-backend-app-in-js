@@ -3,6 +3,7 @@ import { productProps,IProduct } from "../types/index";
 import { algoliasearch } from "algoliasearch";
 import Category from "../model/categoryModel";
 import { Types } from "mongoose";
+import { ServiceError } from "../api/grpcErrors";
 
 
 const algoliaAppId = process.env.ALGOLIA_APPLICATION_ID;
@@ -25,7 +26,7 @@ export class publicCommands{
             const normalizedQuery = query.trim();
 
             if (!normalizedQuery) {
-                throw new Error("Search query is required");
+                throw ServiceError.invalidArgument("Search query is required");
             }
 
             const response = await this.algoliaClient.search({
@@ -47,8 +48,11 @@ export class publicCommands{
 
             return response;
         } catch (error) {
+            if (error instanceof ServiceError) {
+                throw error;
+            }
             console.error(`Failed to search products for query \"${query}\":`, error);
-            throw new Error(
+            throw ServiceError.internal(
                 `Product search failed: ${error instanceof Error ? error.message : "Unknown error"}`
             );
         }
@@ -59,19 +63,17 @@ export class publicCommands{
             const normalizedSlug = categorySlug.trim().toLowerCase();
 
             if (!normalizedSlug) {
-                throw new Error("Category slug is required");
+                throw ServiceError.invalidArgument("Category slug is required");
             }
 
             const skip = (page - 1) * limit;
 
             const rootCategory = await Category.findOne({ slug: normalizedSlug })
                 .select({ _id: 1, name: 1, slug: 1 })
-                .skip(skip)
-                .limit(limit)
                 .lean<{ _id: Types.ObjectId; name: string; slug: string } | null>();
 
             if (!rootCategory) {
-                throw new Error("Category not found");
+                throw ServiceError.notFound("Category not found");
             }
 
             const descendants = await Category.aggregate<{ _id: Types.ObjectId }>([
@@ -123,8 +125,11 @@ export class publicCommands{
                 products,
             };
         } catch (error) {
+            if (error instanceof ServiceError) {
+                throw error;
+            }
             console.error(`Failed to get products for category ${categorySlug}:`, error);
-            throw new Error(
+            throw ServiceError.internal(
                 `Get products by category failed: ${error instanceof Error ? error.message : "Unknown error"}`
             );
         }
@@ -135,7 +140,7 @@ export class publicCommands{
             const normalizedProductId = productId.trim();
 
             if (!normalizedProductId) {
-                throw new Error("Invalid product id");
+                throw ServiceError.invalidArgument("Invalid product id");
             }
 
             const sourceProduct = await this.productModel
@@ -149,7 +154,7 @@ export class publicCommands{
                 } | null>();
 
             if (!sourceProduct) {
-                throw new Error("Product not found");
+                throw ServiceError.notFound("Product not found");
             }
 
             const normalizedBrand = sourceProduct.brand?.trim();
@@ -189,8 +194,11 @@ export class publicCommands{
                 products: relatedProducts,
             };
         } catch (error) {
+            if (error instanceof ServiceError) {
+                throw error;
+            }
             console.error(`Failed to get related products for product ${productId}:`, error);
-            throw new Error(
+            throw ServiceError.internal(
                 `Get related products failed: ${error instanceof Error ? error.message : "Unknown error"}`
             );
         }
@@ -222,8 +230,11 @@ export class publicCommands{
                 products: featuredProducts,
             };
         } catch (error) {
+            if (error instanceof ServiceError) {
+                throw error;
+            }
             console.error("Failed to get featured products:", error);
-            throw new Error(
+            throw ServiceError.internal(
                 `Get featured products failed: ${error instanceof Error ? error.message : "Unknown error"}`
             );
         }
@@ -231,14 +242,19 @@ export class publicCommands{
 
     async getProductDetails(productId: string) {
         try {
+            const normalizedProductId = productId.trim();
+
+            if (!normalizedProductId) {
+                throw ServiceError.invalidArgument("Invalid product id");
+            }
 
             const product = await this.productModel
-                .findOne({ productId: productId, isActive: true })
+                .findOne({ productId: normalizedProductId, isActive: true })
                 .populate({ path: "category", select: "name slug parent" })
                 .lean<Record<string, any> | null>();
 
             if (!product) {
-                throw new Error("Product not found");
+                throw ServiceError.notFound("Product not found");
             }
 
             const image = Array.isArray(product.image)
@@ -266,8 +282,11 @@ export class publicCommands{
                 updatedAt: product.updatedAt ?? null,
             };
         } catch (error) {
+            if (error instanceof ServiceError) {
+                throw error;
+            }
             console.error(`Failed to get product details for product ${productId}:`, error);
-            throw new Error(
+            throw ServiceError.internal(
                 `Get product details failed: ${error instanceof Error ? error.message : "Unknown error"}`
             );
         }

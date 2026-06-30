@@ -1,0 +1,13 @@
+{
+  "name": "@monorepo/order-service",
+  "version": "1.0.0",
+  "type": "module",
+  "overrides": {
+    "jest-mock-extended": {
+      "jest": "$jest"
+    }},
+  "scripts": {
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --watch"
+  }
+}

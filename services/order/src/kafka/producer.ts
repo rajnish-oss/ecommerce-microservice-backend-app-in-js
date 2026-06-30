@@ -1,7 +1,15 @@
 import {Kafka} from 'kafkajs';
 import EVENTS from '../../../constant/event';
 
-const kafka = new Kafka({ clientId: 'order-service', brokers: ['localhost:9092'] });
+const kafkaBrokers = (process.env.KAFKA_BROKERS ?? 'kafka:9092')
+  .split(',')
+  .map((broker) => broker.trim())
+  .filter(Boolean);
+
+const kafka = new Kafka({
+  clientId: process.env.KAFKA_CLIENT_ID ?? 'order-service',
+  brokers: kafkaBrokers
+});
 const producer = kafka.producer();
 
 let producerConnectPromise: Promise<void> | null = null;
@@ -14,7 +22,7 @@ async function ensureProducerConnected() {
 }
 
 
-export async function emitOrderEvent(productId: number, quantity: number) {
+export async function emitOrderEvent(productId: string, quantity: number) {
   await ensureProducerConnected();
   await producer.send({
     topic: EVENTS.ORDER_PLACED,

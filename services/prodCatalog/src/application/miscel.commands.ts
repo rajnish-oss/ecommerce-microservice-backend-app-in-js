@@ -1,9 +1,16 @@
 import ProductModel from "../model/productModel";
 import { algoliasearch } from "algoliasearch";
 import Category from "../model/categoryModel";
+import { ServiceError } from "../api/grpcErrors";
 
+const algoliaAppId = process.env.ALGOLIA_APPLICATION_ID;
+const algoliaApiKey = process.env.ALGOLIA_API_KEY;
 
-const client = algoliasearch(process.env.ALGOLIA_APPLICATION_ID, process.env.ALGOLIA_API_KEY);
+if (!algoliaAppId || !algoliaApiKey) {
+    throw new Error("ALGOLIA_APPLICATION_ID and ALGOLIA_API_KEY must be set");
+}
+
+const client = algoliasearch(algoliaAppId, algoliaApiKey);
 
 interface CategoryNode {
     _id: string;
@@ -46,7 +53,7 @@ export class miscelCommands {
             const indexName = "products";
 
             if (!product) {
-                throw new Error("Product not found");
+                throw ServiceError.notFound("Product not found");
             }
             const algoliaProduct = {
                 ...product.toJSON(),
@@ -70,10 +77,13 @@ export class miscelCommands {
 
             return res;
         } catch (error) {
+            if (error instanceof ServiceError) {
+                throw error;
+            }
             console.error(`Failed to sync product ${productId} to Algolia:`, error);
-            throw new Error(
+            throw ServiceError.internal(
                 `Algolia sync failed for product ${productId}: ${
-                    error instanceof Error ? error.message : 'Unknown error'
+                    error instanceof Error ? error.message : "Unknown error"
                 }`
             );
         }
@@ -84,7 +94,7 @@ export class miscelCommands {
         // 1. Fetch the product first to find out what category it belongs to
         const product = await this.productModel.findOne({ productId });
         if (!product) {
-            throw new Error(`Product with ID ${productId} not found`);
+            throw ServiceError.notFound(`Product with ID ${productId} not found`);
         }
 
         // 2. Perform graph lookup upwards or downwards from that category
@@ -104,11 +114,13 @@ export class miscelCommands {
         return this.formatTree(categoryTree);
 
     } catch (error) {
-        // Log accurately: The database fetch failed, not the external Algolia API
+        if (error instanceof ServiceError) {
+            throw error;
+        }
         console.error(`Database aggregation failed for product ${productId}:`, error);
-        throw new Error(
+        throw ServiceError.internal(
             `Failed to generate category tree for product ${productId}: ${
-                error instanceof Error ? error.message : 'Unknown error'
+                error instanceof Error ? error.message : "Unknown error"
             }`
         );
     }
@@ -121,7 +133,7 @@ export class miscelCommands {
                 .lean<{ name: string } | null>();
 
             if (!category) {
-                throw new Error("Category not found");
+                throw ServiceError.notFound("Category not found");
             }
 
             const normalizedCategory = category.name.trim().toLowerCase();
@@ -136,8 +148,11 @@ export class miscelCommands {
 
             return [];
         } catch (error) {
+            if (error instanceof ServiceError) {
+                throw error;
+            }
             console.error(`Failed to get filter attributes for category ${categoryId}:`, error);
-            throw new Error(
+            throw ServiceError.internal(
                 `Failed to get filter attributes for category ${categoryId}: ${
                     error instanceof Error ? error.message : "Unknown error"
                 }`

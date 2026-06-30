@@ -14,19 +14,19 @@ datasource db {
 }
 
 model orderList {
-  userId Int @id
+  userId String @id
   orders order[]
 }
 
 model order {
-  productId Int
+  productId String
   status OrderStatus
   quantity Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   orderList orderList @relation(fields: [listId], references: [userId])
-  listId Int
+  listId String
 
   @@id([listId, productId])
 }

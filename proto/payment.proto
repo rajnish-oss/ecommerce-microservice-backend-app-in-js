@@ -4,8 +4,9 @@ package payment;
 
 // ===== Stripe Product Messages =====
 message CreateProductRequest {
-  string name = 1;
-  double price = 2;
+  string productId = 1;
+  string name = 2;
+  double price = 3;
 }
 
 message CreateProductResponse {
@@ -14,8 +15,13 @@ message CreateProductResponse {
 }
 
 message UpdateProductRequest {
-  string name = 1;
-  double newPrice = 2;
+  string productId = 1;
+  string name = 2;
+  double price = 3;
+}
+
+message DeleteProductRequest{
+  string productId = 1;
 }
 
 message UpdateProductResponse {
@@ -23,17 +29,42 @@ message UpdateProductResponse {
 }
 
 message CreateCheckoutSessionRequest {
-  string name = 1;
+  string productId = 1;
   int32 quantity = 2;
+  string userId = 3;
+  string orderId = 4;
 }
 
 message CreateCheckoutSessionResponse {
   string url = 1;
 }
 
+message WebhookRequest {
+  string stripe_signature = 1;
+  bytes raw_body = 2;          // 'bytes' perfectly maps to your Node.js Buffer
+}
+
+message WebhookResponse {
+  bool success = 1;
+  string message = 2;
+  int32 http_status_code = 3;  // Relayed back so the Gateway knows what to tell Stripe
+}
+
+message CreateRefundRequest {
+  string orderId = 1;
+}
+
+message CreateRefundResponse {
+  string message = 1;
+}
+
 // ===== Payment Service =====
 service PaymentService {
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
   rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (UpdateProductResponse);
   rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
+  rpc HandleStripeWebhook (WebhookRequest) returns (WebhookResponse);
+  rpc CreateRefund(CreateRefundRequest) returns (CreateRefundResponse);
 }
+

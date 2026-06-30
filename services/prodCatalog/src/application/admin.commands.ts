@@ -8,6 +8,13 @@ import {
     productProps,
     UpdateCategoryInput,
 } from "../types/index";
+import { ServiceError } from "../api/grpcErrors";
+import {
+    emitProductArchived,
+    emitProductCreated,
+    emitProductUpdated,
+    publishCatalogEventSafely,
+} from "../kafka/producer";
 
 
 export class adminCommands {
@@ -27,9 +34,15 @@ export class adminCommands {
             name: product.name,
         });
 
-        if(existingProduct) throw new Error("Product with similar already exist");
+        if(existingProduct) throw ServiceError.alreadyExists("Product with similar already exist");
 
-        return await this.productModel.create(product);
+        const created = await this.productModel.create(product);
+        await publishCatalogEventSafely(
+            () => emitProductCreated(created),
+            `product created ${created.productId}`
+        );
+
+        return created;
     }
 
     async updateProduct(productData: IProduct) {
@@ -40,8 +53,13 @@ export class adminCommands {
         );
 
         if (!product) {
-            throw new Error("Product not found");
+            throw ServiceError.notFound("Product not found");
         }
+
+        await publishCatalogEventSafely(
+            () => emitProductUpdated(product),
+            `product updated ${product.productId}`
+        );
 
         return product;
     }
@@ -54,8 +72,13 @@ export class adminCommands {
         );
 
         if (!product) {
-            throw new Error("Product not found");
+            throw ServiceError.notFound("Product not found");
         }
+
+        await publishCatalogEventSafely(
+            () => emitProductArchived(product),
+            `product archived ${product.productId}`
+        );
 
         return product;
     }
@@ -63,13 +86,13 @@ export class adminCommands {
     async addCategory(categoryName: string) {
         const name = categoryName.trim();
         if (!name) {
-            throw new Error("Category name is required");
+            throw ServiceError.invalidArgument("Category name is required");
         }
 
         const slug = this.normalizeSlug(name);
         const existingCategory = await Category.findOne({ slug });
         if (existingCategory) {
-            throw new Error("Category already exists");
+            throw ServiceError.alreadyExists("Category already exists");
         }
 
         const category = await Category.create({
@@ -84,13 +107,13 @@ export class adminCommands {
     async addCategoryTree(category: CategoryTreeInput, parentId: string | null = null): Promise<CategoryTreeResult> {
         const name = category.name.trim();
         if (!name) {
-            throw new Error("Category name is required");
+            throw ServiceError.invalidArgument("Category name is required");
         }
 
         const slug = this.normalizeSlug(category.slug || name);
         const existingCategory = await Category.findOne({ slug });
         if (existingCategory) {
-            throw new Error(`Category with slug "${slug}" already exists`);
+            throw ServiceError.alreadyExists(`Category with slug "${slug}" already exists`);
         }
 
         const createdCategory = await Category.create({
@@ -120,24 +143,24 @@ export class adminCommands {
     async updateCategory(input: UpdateCategoryInput) {
         const category = await Category.findById(input.categoryId);
         if (!category) {
-            throw new Error("Category not found");
+            throw ServiceError.notFound("Category not found");
         }
 
         if (input.parent === input.categoryId) {
-            throw new Error("Category cannot be its own parent");
+            throw ServiceError.invalidArgument("Category cannot be its own parent");
         }
 
         if (input.parent) {
             const parent = await Category.findById(input.parent);
             if (!parent) {
-                throw new Error("Parent category not found");
+                throw ServiceError.notFound("Parent category not found");
             }
         }
 
         if (input.name !== undefined) {
             const name = input.name.trim();
             if (!name) {
-                throw new Error("Category name cannot be empty");
+                throw ServiceError.invalidArgument("Category name cannot be empty");
             }
             category.name = name;
         }
@@ -149,7 +172,7 @@ export class adminCommands {
                 _id: { $ne: category._id },
             });
             if (slugOwner) {
-                throw new Error(`Category with slug "${slug}" already exists`);
+                throw ServiceError.alreadyExists(`Category with slug "${slug}" already exists`);
             }
             category.slug = slug;
         }
@@ -171,7 +194,7 @@ export class adminCommands {
         );
 
         if (!category) {
-            throw new Error("Category not found");
+            throw ServiceError.notFound("Category not found");
         }
 
         return category;

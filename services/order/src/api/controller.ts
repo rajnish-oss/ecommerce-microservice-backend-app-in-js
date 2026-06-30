@@ -6,7 +6,7 @@ export const orderHandler = (orderService: OrderServices) => ({
     CreateOrder: async (call: any, callback: any) => {
         try {
             const orderDetail = call.request.orderDetail;
-            const order = orderService.createOrUpdateOrder(orderDetail.userId, orderDetail.productId, orderDetail.quantity);
+            const order = await orderService.createOrUpdateOrder(orderDetail.userId, orderDetail.productId, orderDetail.quantity);
             callback(null, { order });
         } catch (error: any) {
             callback({
@@ -18,7 +18,7 @@ export const orderHandler = (orderService: OrderServices) => ({
     UpdateStatus: async (call: any, callback: any) => {
         try {
             const orderDetail = call.request.orderDetail;
-            const status = orderService.updateStatus(orderDetail.userId, orderDetail.productId, orderDetail.status);
+            const status = await orderService.updateStatus(orderDetail.userId, orderDetail.productId, orderDetail.status);
             callback(null, { status });
         } catch (error: any) {
             callback({
@@ -31,7 +31,7 @@ export const orderHandler = (orderService: OrderServices) => ({
     GetOrder: async (call: any, callback: any) => {
         try {
             const orderId = call.request.orderId;
-            const orders = orderService.getUserOrders(orderId);
+            const orders = await  orderService.getUserOrders(orderId);
             callback(null, { orders });
         } catch (error: any) {
             callback({
@@ -44,7 +44,7 @@ export const orderHandler = (orderService: OrderServices) => ({
     DeleteOrder: async (call: any, callback: any) => {
         try {
             const orderDetail = call.request.orderDetail;
-            const order = orderService.deleteOrder(orderDetail.userId, orderDetail.productId);
+            const order = await orderService.deleteOrder(orderDetail.userId, orderDetail.productId);
             callback(null, { order });
         } catch (error: any) {
             callback({
